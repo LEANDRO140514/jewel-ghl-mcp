@@ -1,27 +1,36 @@
 # JEWEL GHL MCP Server 💎
 
-**Claude construye, clona, adapta y despliega tus workflows, automatizaciones y snapshots de GoHighLevel en lenguaje natural.**
+**Claude construye, clona, adapta y despliega **todo** tu ecosistema de GoHighLevel en lenguaje natural.**
 
-El copiloto definitivo para agencias y consultores que odian perder horas en la UI de GHL.
+El copiloto definitivo para agencias y consultores que quieren dejar de perder horas en la UI de GHL.
 
 ## ¿Qué es JEWEL GHL?
 
 JEWEL GHL convierte a **Claude** en tu mentor personal de GHL.  
-Dile en español normal:  
-> “Clona el workflow de follow-up de dentistas y adáptalo para gimnasios con membresías recurrentes”  
+Dile en español normal y Claude lo hace completo:
 
-…y Claude lo hace completo (crea workflows, snapshots, pipelines, triggers, etc.).
+- “Clona el workflow de follow-up de dentistas y adáptalo para gimnasios con membresías recurrentes”
+- “Crea una secuencia completa de email marketing para leads de Meta Ads”
+- “Diseña y publica una landing page de high-conversion para encuestas de satisfacción”
+- “Automatiza todo el flujo de Meta → Landing → Encuesta → Pipeline”
 
-**Enfoque principal**: Workflows + Automatizaciones + Snapshots (exacto lo que los gurus más guardan).
-
-**Próximamente (Fase 2)**: Integración nativa con nuestro sistema vertical de atención multicanal → la verdadera magia.
+**Áreas que domina JEWEL GHL:**
+- **Workflows & Automatizaciones** (el foco principal y lo que más duele)
+- **Snapshots** completos (clonación y adaptación)
+- **Meta Ads** + automatizaciones de Facebook/Instagram
+- **Landing Pages / Funnels / Websites**
+- **Email Marketing** (secuencias, broadcasts, templates)
+- **Encuestas, Forms y Quizzes**
+- Pipelines, Agent Studio, calendarios, SMS, voice, etc.
 
 ## Características actuales
-- 834 tools MCP (576 endpoints oficiales de GHL + 32 tools curados de alto nivel)
-- Soporte completo para **workflows, snapshots, pipelines y Agent Studio**
-- Transports: stdio + Streamable HTTP + SSE
+
+- **834 tools MCP** (la mayor cobertura del mercado)
+- Soporte completo para **workflows, snapshots, Meta, landings, email marketing y encuestas**
+- Transports: stdio + Streamable HTTP + SSE (funciona en Claude Desktop, Web y Móvil)
 - Preparado para multi-tenant SaaS (Next.js + Supabase)
-- Daily auto-update de la API oficial de GHL
+- Enfoque estratégico: automatizaciones + flujos completos de adquisición y retención
+- Daily auto-update con la API oficial de GHL
 
 ## Instalación rápida (para desarrollo)
 
