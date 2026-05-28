@@ -30,16 +30,12 @@ function log(level: LogLevel, msg: string, data?: Record<string, unknown>) {
 }
 
 function readConfig(): GHLConfig {
-  const config: GHLConfig = {
+  return {
     accessToken: process.env.GHL_API_KEY || '',
     baseUrl: process.env.GHL_BASE_URL || 'https://services.leadconnectorhq.com',
     version: process.env.GHL_API_VERSION || '2021-07-28',
     locationId: process.env.GHL_LOCATION_ID || '',
   };
-
-  if (!config.accessToken) throw new Error('GHL_API_KEY is required');
-  if (!config.locationId) throw new Error('GHL_LOCATION_ID is required');
-  return config;
 }
 
 function createMcpServer(client: EnhancedGHLClient): McpServer {
@@ -66,15 +62,24 @@ async function main() {
     tools: toolCount,
   });
 
-  await ghlClient.testConnection();
+  if (config.accessToken) await ghlClient.testConnection();
 
   const app = express();
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
   app.use(cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (/^https?:\/\/localhost(:\d+)?$/.test(origin) ||
-          origin === 'https://chatgpt.com' ||
-          origin === 'https://chat.openai.com') {
+      if (
+        /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+        /^https:\/\/.*\.vercel\.app$/.test(origin) ||
+        origin === 'https://chatgpt.com' ||
+        origin === 'https://chat.openai.com' ||
+        allowedOrigins.includes(origin)
+      ) {
         return callback(null, true);
       }
       callback(new Error('CORS not allowed'));
