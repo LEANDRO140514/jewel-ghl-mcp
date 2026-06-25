@@ -14,6 +14,8 @@ El registro filtra tools vía la variable de entorno `GHL_TOOL_PROFILE`, leída 
 | **full** | `GHL_TOOL_PROFILE=full` (default del código hoy) | Todos: ~834 endpoint tools + capa curated `agent-workspace` | Desarrollo, inventario completo, CI |
 | **curated** | `GHL_TOOL_PROFILE=curated` | Solo tools `agent-workspace` (flujos CRM de alto nivel) | Agentes conversacionales con cola de confirmación |
 | **raw** | `GHL_TOOL_PROFILE=raw` | Solo endpoint-level; sin capa curated | Integraciones que llaman API GHL tool por tool |
+| **jewel_readonly** | `GHL_TOOL_PROFILE=jewel_readonly` | Lectura, búsqueda, workspaces y preparación sin patrones write/destructive | Cursor laboratorio / auditoría |
+| **jewel_operator** | `GHL_TOOL_PROFILE=jewel_operator` | Curated no destructivo + raw solo lectura | SaaS producción con aprobación humana externa |
 
 ### Cómo se clasifica cada tool
 
@@ -21,6 +23,10 @@ El registro filtra tools vía la variable de entorno `GHL_TOOL_PROFILE`, leída 
 | --- | --- |
 | Curated | `_meta.labels.category === 'agent-workspace'` o `source === 'curated-agent-workspace'` |
 | Raw | Todo lo demás (contacts, workflows, snapshots, official-spec, …) |
+| JEWEL readonly | `isReadOnlyTool()` — metadata `readOnly`, prefijos `get_`/`search_`/`list_`, workspaces `crm_*_workspace`, `crm_prepare_*` sin subcadenas write |
+| JEWEL operator | Curated no excluido + raw readonly; excluye `delete`, `remove`, `bulk`, `snapshot`, workflow triggers, writes raw |
+
+> **Nota:** Los filtros JEWEL son **defensivos por nombre y anotaciones inferidas**. Deben evolucionar hacia metadata explícita (`readOnly`, `destructive`, `access`) en cada tool.
 
 ### Ejemplos
 
@@ -28,28 +34,34 @@ El registro filtra tools vía la variable de entorno `GHL_TOOL_PROFILE`, leída 
 GHL_TOOL_PROFILE=curated npm run tools:list
 GHL_TOOL_PROFILE=curated npm run start:stdio
 GHL_TOOL_PROFILE=raw npm run start:http
+GHL_TOOL_PROFILE=jewel_readonly npm run start:stdio
+GHL_TOOL_PROFILE=jewel_operator npm run start:http
 ```
 
 Tests: `tests/tool-registry.test.ts`.
 
 ---
 
-## Perfiles JEWEL objetivo (por implementar)
+## Perfiles JEWEL
 
-Los perfiles `jewel_*` **no existen aún en código**. Son el contrato de seguridad para producción y deben mapearse sobre `full` / `curated` / `raw` + reglas de acceso (`readOnly`, `destructive`, categoría).
-
-| Perfil | Intención | Alcance esperado |
+| Perfil | Estado | Intención |
 | --- | --- | --- |
-| **jewel_readonly** | Observación sin mutación | Solo tools `readOnly: true`; búsquedas, listados, reportes, insights |
-| **jewel_operator** | Operación diaria del SaaS | Curated + subset raw de CRM (contacts, opportunities, tasks, notes, calendar) con writes no destructivos |
-| **jewel_admin** | Setup de agencia / location | Operator + configuración (custom fields, pipelines, workflows read/write, snapshots read) |
-| **jewel_danger_zone** | Acciones irreversibles | Deletes masivos, snapshot push, billing, permisos, marketplace — **desactivado por defecto** |
+| **jewel_readonly** | **Implementado** | Observación sin mutación — excluye `create`, `update`, `delete`, `send`, `bulk`, etc. |
+| **jewel_operator** | **Implementado** | Curated + raw lectura; excluye destructivos, snapshots, workflow triggers, writes raw |
+| **jewel_admin** | Pendiente | Setup agencia — operator + configuración |
+| **jewel_danger_zone** | Pendiente | Acciones irreversibles — desactivado por defecto |
 
-Implementación prevista: extender `readToolProfile()` en `tool-registry.ts` o capa de policy por tenant en jewel-ghl SaaS.
+Implementación: `src/tool-registry.ts` → `filterJewelReadOnly()`, `filterJewelOperator()`, helpers `isReadOnlyTool`, `isWriteLikeTool`, `isDestructiveTool`.
 
 ---
 
-## Matriz canal → perfil
+## Perfiles legacy (upstream)
+
+Los perfiles `full`, `curated` y `raw` se mantienen sin cambios de comportamiento.
+
+---
+
+## Matriz canal → perfil (actualizada)
 
 | Canal | Perfil obligatorio | Transport | Notas |
 | --- | --- | --- | --- |
@@ -58,16 +70,14 @@ Implementación prevista: extender `readToolProfile()` en `tool-registry.ts` o c
 | **jewel-ghl SaaS — admin / setup** | `jewel_admin` | HTTP (`main.ts`) | Solo roles con permiso de configuración; audit log en InsForge/Supabase |
 | **danger_zone** | `jewel_danger_zone` | Cualquiera | **Off por defecto**; requiere flag explícito por tenant + confirmación en UI + trazabilidad GHL-first |
 
-### Mapeo provisional canal → perfil actual
+### Mapeo canal → perfil (Fase 1F)
 
-Hasta implementar `jewel_*`, usar esta aproximación:
-
-| Canal | Perfil actual recomendado |
+| Canal | Perfil |
 | --- | --- |
-| Cursor | `curated` o `raw` con tools de solo lectura vía `test-tool` sin `--confirm` |
-| SaaS producción | `curated` |
-| SaaS admin | `full` con policy externa (temporal — migrar a `jewel_admin`) |
-| danger_zone | No exponer; usar CLI local con `--confirm` solo en mantenimiento |
+| Cursor | `jewel_readonly` |
+| SaaS producción | `jewel_operator` |
+| SaaS admin | `jewel_admin` (pendiente) |
+| danger_zone | `jewel_danger_zone` (pendiente) |
 
 ---
 
@@ -76,7 +86,7 @@ Hasta implementar `jewel_*`, usar esta aproximación:
 ### 1. `full` nunca es default en producción
 
 - **Hoy el código defaultea a `full`** si `GHL_TOOL_PROFILE` no está definido.
-- **Política JEWEL:** en despliegues SaaS y HTTP público, el orquestador (jewel-ghl) **debe** inyectar `GHL_TOOL_PROFILE=curated` como mínimo hasta que existan `jewel_operator` / `jewel_readonly`.
+- **Política JEWEL:** en despliegues SaaS y HTTP público, el orquestador (jewel-ghl) **debe** inyectar `GHL_TOOL_PROFILE=jewel_operator` (o `jewel_readonly` en Cursor).
 - `full` queda reservado para: CI, `tools:list`, `scan:ghl-api`, entornos locales aislados.
 
 ### 2. Writes destructivos
@@ -100,8 +110,8 @@ En HTTP (`main.ts`), perfil y credenciales son **por proceso** hoy. En jewel-ghl
 | --- | --- |
 | **1A** (actual) | Este documento + ARCHITECTURE.md |
 | **1B** | Remote upstream, diff, lista de conflictos |
-| **1C** | Implementar `jewel_readonly` / `jewel_operator` en registry |
-| **1D** | Default de producción ≠ `full`; scripts `configure:cursor`, `auth-check` npm |
+| **1F** | Perfiles `jewel_readonly` / `jewel_operator` en registry |
+| **2A** | Port selectivo CLI upstream; reactivar tests en cuarentena |
 
 ---
 

@@ -87,7 +87,7 @@ export interface ToolInventoryItem {
   operationId?: string;
 }
 
-type ToolProfile = 'full' | 'curated' | 'raw';
+type ToolProfile = 'full' | 'curated' | 'raw' | 'jewel_readonly' | 'jewel_operator';
 
 // ─── Annotation Inference ───────────────────────────────────
 
@@ -171,6 +171,82 @@ function inferToolInventoryItem(tool: Tool, moduleName: string): ToolInventoryIt
     path: official.path,
     operationId: official.operationId,
   };
+}
+
+// ─── JEWEL profile filters (defensive; evolve toward explicit metadata) ───
+
+const WRITE_LIKE_SUBSTRINGS = [
+  'create', 'update', 'delete', 'remove', 'send', 'add', 'assign', 'move',
+  'upload', 'import', 'export', 'bulk',
+] as const;
+
+const OPERATOR_EXCLUDE_SUBSTRINGS = [
+  'delete', 'remove', 'bulk', 'snapshot', 'mass_send', 'mass-send', 'irreversible', 'purge', 'wipe',
+] as const;
+
+function normalizeToolName(name: string): string {
+  return name.toLowerCase().replace(/-/g, '_');
+}
+
+function isCuratedTool(tool: Tool): boolean {
+  const category = ((tool as any)._meta?.labels?.category || '').toString();
+  const source = ((tool as any)._meta?.labels?.source || '').toString();
+  return category === 'agent-workspace' || source === 'curated-agent-workspace';
+}
+
+function isWriteLikeTool(name: string): boolean {
+  const n = normalizeToolName(name);
+  if (WRITE_LIKE_SUBSTRINGS.some((sub) => n.includes(sub))) return true;
+  if (n.includes('workflow') && n.includes('trigger')) return true;
+  if (n.includes('contact') && (n.includes('create') || n.includes('update') || n.includes('delete') || n.includes('write'))) {
+    return true;
+  }
+  if (n.includes('opportunity') && (n.includes('create') || n.includes('update') || n.includes('delete') || n.includes('write') || n.includes('upsert'))) {
+    return true;
+  }
+  return false;
+}
+
+function isDestructiveTool(name: string, meta?: unknown): boolean {
+  return inferAnnotations(name, meta).destructiveHint === true;
+}
+
+function isReadOnlyTool(name: string, meta?: unknown): boolean {
+  if (isWriteLikeTool(name) || isDestructiveTool(name, meta)) return false;
+
+  const n = normalizeToolName(name);
+  if (n.includes('snapshot')) return false;
+  if (n.includes('workflow') && n.includes('trigger')) return false;
+
+  const annotations = inferAnnotations(name, meta);
+  if (annotations.readOnlyHint) return true;
+
+  if (n.endsWith('_workspace') || n === 'crm_list_workspaces') return true;
+  if (n.includes('find_') || n.includes('_find_') || n.includes('health_check')) return true;
+  if (n.startsWith('crm_prepare_')) return true;
+
+  return false;
+}
+
+function filterJewelReadOnly(tool: Tool): boolean {
+  const meta = (tool as any)._meta;
+  return isReadOnlyTool(tool.name, meta);
+}
+
+function isOperatorExcluded(name: string, meta?: unknown): boolean {
+  const n = normalizeToolName(name);
+  if (OPERATOR_EXCLUDE_SUBSTRINGS.some((sub) => n.includes(sub))) return true;
+  if (n.includes('workflow') && n.includes('trigger')) return true;
+  if (isDestructiveTool(name, meta)) return true;
+  if (isWriteLikeTool(name)) return true;
+  return false;
+}
+
+function filterJewelOperator(tool: Tool): boolean {
+  const meta = (tool as any)._meta;
+  if (isOperatorExcluded(tool.name, meta)) return false;
+  if (isCuratedTool(tool)) return true;
+  return isReadOnlyTool(tool.name, meta);
 }
 
 // ─── Tool Registry ──────────────────────────────────────────
@@ -447,11 +523,10 @@ export class ToolRegistry {
   private isToolVisible(name: string): boolean {
     const tool = this.allToolDefs.find((item) => item.name === name);
     if (!tool) return false;
-    const category = ((tool as any)._meta?.labels?.category || '').toString();
-    const source = ((tool as any)._meta?.labels?.source || '').toString();
-    const isCurated = category === 'agent-workspace' || source === 'curated-agent-workspace';
-    if (this.profile === 'curated') return isCurated;
-    if (this.profile === 'raw') return !isCurated;
+    if (this.profile === 'curated') return isCuratedTool(tool);
+    if (this.profile === 'raw') return !isCuratedTool(tool);
+    if (this.profile === 'jewel_readonly') return filterJewelReadOnly(tool);
+    if (this.profile === 'jewel_operator') return filterJewelOperator(tool);
     return true;
   }
 }
@@ -460,7 +535,8 @@ export class ToolRegistry {
 
 function readToolProfile(): ToolProfile {
   const value = (process.env.GHL_TOOL_PROFILE || 'full').toLowerCase();
-  if (value === 'curated' || value === 'raw' || value === 'full') return value;
+  const known: ToolProfile[] = ['full', 'curated', 'raw', 'jewel_readonly', 'jewel_operator'];
+  if (known.includes(value as ToolProfile)) return value as ToolProfile;
   process.stderr.write(`[Registry] Unknown GHL_TOOL_PROFILE=${value}; using full.\n`);
   return 'full';
 }

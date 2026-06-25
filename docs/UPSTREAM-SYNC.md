@@ -267,6 +267,33 @@ Entonces: quitar ignore de Jest, ejecutar `npm test` completo, actualizar esta s
 
 ---
 
+## Fase 1F — Perfiles JEWEL
+
+**Fecha:** 2026-06-24  
+**Rama:** `phase-1c/repo-operability`
+
+### Implementado
+
+| Perfil | Uso | Filtros |
+| --- | --- | --- |
+| `jewel_readonly` | Cursor laboratorio / auditoría | `isReadOnlyTool` — excluye patrones write/destructive por nombre |
+| `jewel_operator` | SaaS producción futura | Curated no excluido + raw readonly; excluye delete/bulk/snapshot/triggers |
+
+### Sin cambios
+
+- `full`, `curated`, `raw` — comportamiento idéntico
+- Default sigue siendo `full` si `GHL_TOOL_PROFILE` no está definido
+- Perfiles desconocidos → fallback a `full` con warning stderr
+
+### Pendiente Fase 2A
+
+- `jewel_admin`, `jewel_danger_zone`
+- Default de producción ≠ `full` (inyección en despliegue jewel-ghl)
+- Metadata explícita por tool en lugar de solo heurísticas de nombre
+- Port `scripts/ghl-mcp.mjs` upstream
+
+---
+
 ## Checklist pre-merge (futuro)
 
 - [ ] `src/main.ts` conserva CORS Vercel y headers `x-ghl-*`
