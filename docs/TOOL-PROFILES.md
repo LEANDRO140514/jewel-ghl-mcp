@@ -104,6 +104,44 @@ En HTTP (`main.ts`), perfil y credenciales son **por proceso** hoy. En jewel-ghl
 
 ---
 
+## Cursor configuration
+
+Configuración recomendada para **Cursor como consola de ingeniería** (laboratorio, no producción).
+
+| Regla | Detalle |
+| --- | --- |
+| Perfil obligatorio | `GHL_TOOL_PROFILE=jewel_readonly` |
+| Cuenta GHL | **Sandbox** — Private Integration Token de entorno de prueba |
+| No usar en Cursor | `full`, `jewel_operator`, `curated` sin restricción |
+| Secretos | Nunca commitear tokens reales; usar placeholders en repo |
+
+### Archivo de ejemplo
+
+Copiar desde la raíz del repo: [`cursor-mcp-config.example.json`](../cursor-mcp-config.example.json)
+
+Entrada MCP: `jewel-ghl-readonly` → `node` + `dist/server.js` con perfil readonly.
+
+### Preview CLI (no escribe `mcp.json`)
+
+```powershell
+npm run configure:cursor
+```
+
+Imprime JSON a stdout con servidor `ghl` y **sin** `GHL_TOOL_PROFILE`. Para Cursor, usar el example file o fusionar manualmente la entrada `jewel-ghl-readonly` en tu config local.
+
+### Instalación manual en Cursor
+
+1. `npm run build` en `C:\dev\jewel-ghl-mcp`
+2. Abrir Cursor → Settings → MCP (o editar `%USERPROFILE%\.cursor\mcp.json`)
+3. **Hacer backup** del `mcp.json` existente antes de editar
+4. Añadir el bloque `jewel-ghl-readonly` desde `cursor-mcp-config.example.json`
+5. Reemplazar placeholders con credenciales **sandbox** (no producción)
+6. Reiniciar Cursor o recargar MCP servers
+
+`.gitignore` ignora `cursor-mcp-config.json` y `*.mcp.json` — el archivo global de Cursor no debe versionarse.
+
+---
+
 ## Evolución planificada
 
 | Fase | Entrega |

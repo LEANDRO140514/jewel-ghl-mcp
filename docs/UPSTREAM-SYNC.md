@@ -314,6 +314,27 @@ Entonces: quitar ignore de Jest, ejecutar `npm test` completo, actualizar esta s
 
 ---
 
+## Fase 1I — Configuración Cursor
+
+**Fecha:** 2026-06-24  
+**Rama:** `phase-1c/repo-operability`
+
+### Entregables
+
+| Artefacto | Detalle |
+| --- | --- |
+| `cursor-mcp-config.example.json` | Entrada `jewel-ghl-readonly` con placeholders sandbox |
+| `docs/TOOL-PROFILES.md` | Sección Cursor configuration |
+| `npm run configure:cursor` | Solo stdout — **no escribe** `mcp.json` |
+
+### Política
+
+- Perfil Cursor: `jewel_readonly` únicamente
+- No modificar `C:\Users\...\\.cursor\mcp.json` desde el repo
+- Tokens reales solo en config local del usuario
+
+---
+
 ## Checklist pre-merge (futuro)
 
 - [ ] `src/main.ts` conserva CORS Vercel y headers `x-ghl-*`

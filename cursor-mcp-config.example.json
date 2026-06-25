@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "jewel-ghl-readonly": {
+      "command": "node",
+      "args": ["C:/dev/jewel-ghl-mcp/dist/server.js"],
+      "env": {
+        "GHL_API_KEY": "REPLACE_WITH_SANDBOX_PRIVATE_INTEGRATION_TOKEN",
+        "GHL_LOCATION_ID": "REPLACE_WITH_SANDBOX_LOCATION_ID",
+        "GHL_BASE_URL": "https://services.leadconnectorhq.com",
+        "GHL_API_VERSION": "2021-07-28",
+        "GHL_TOOL_PROFILE": "jewel_readonly"
+      }
+    }
+  }
+}
