@@ -2,7 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const repoRoot = join(__dirname, '..', '..');
+const repoRoot = join(__dirname, '..', '..', '..');
 
 describe('GHL API coverage generation', () => {
   it('hardens the official docs checkout and carries live-docs supplemental endpoints', () => {

@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-const repoRoot = join(__dirname, '..', '..');
+const repoRoot = join(__dirname, '..', '..', '..');
 const cli = join(repoRoot, 'scripts', 'ghl-mcp.mjs');
 
 function runCli(args: string[], env: NodeJS.ProcessEnv = {}) {

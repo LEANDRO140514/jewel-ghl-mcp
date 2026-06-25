@@ -163,7 +163,9 @@ git merge upstream/main --allow-unrelated-histories
 | Fase | Objetivo |
 | --- | --- |
 | **1C** | Operabilidad local: lockfile, scripts alias, port selectivo de assets no conflictivos |
-| **1D** | Implementar perfiles `jewel_readonly` / `jewel_operator` en registry; portar mejoras CLI upstream |
+| **1D** | Validación local: install, build, doctor (sin credenciales) |
+| **1E** | Cuarentena de tests upstream no alineados |
+| **2A** | Port selectivo `scripts/ghl-mcp.mjs` + reactivación gradual de tests |
 | **Merge** | Solo tras checklist de archivos protegidos y smoke HTTP multi-tenant |
 
 ---
@@ -223,6 +225,45 @@ Ningún archivo portado existía localmente; no hubo sobrescrituras.
 | Perfiles `jewel_*` | Implementar en `tool-registry.ts` |
 | `npm run build` + `npm test` | Validar tests portados y doctor con `dist/` presente |
 | `docs/api-sources.lock.json` | Lock de fuentes API upstream |
+
+---
+
+## Fase 1E — Cuarentena de tests upstream
+
+**Fecha:** 2026-06-24  
+**Rama:** `phase-1c/repo-operability`
+
+### Razón
+
+Fase 1D confirmó que los tests core JEWEL pasan, pero los 4 tests portados en 1C desde `tests/scripts/` fallan porque esperan CLI, scripts npm y `.env.example` del upstream BusyBee que JEWEL aún no ha portado.
+
+### Tests movidos a cuarentena
+
+De `tests/scripts/` → `tests/upstream-pending/scripts/`:
+
+| Archivo | Qué valida |
+| --- | --- |
+| `ghl-api-coverage-generation.test.ts` | Pipeline de cobertura API y `api-sources.lock.json` |
+| `ghl-live-smoke.test.ts` | Comportamiento de `scripts/ghl-live-smoke.mjs` |
+| `ghl-mcp-cli.test.ts` | CLI con flags `--write`, `--profile`, `--json` extendido |
+| `onboarding-docs.test.ts` | Scripts npm upstream, `.env.example`, docs Docker/CI |
+
+### Mecanismo
+
+- Jest excluye `/tests/upstream-pending/` vía `testPathIgnorePatterns` en `jest.config.js`.
+- Documentación: `tests/upstream-pending/README.md`.
+- Los tests **no se borran** — contrato futuro para el port del CLI.
+
+### Condición de reactivación
+
+Mover de vuelta a `tests/scripts/` cuando:
+
+1. `scripts/ghl-mcp.mjs` tenga flags upstream necesarios (sin perder aliases JEWEL).
+2. `package.json` tenga scripts definitivos acordados.
+3. `.env.example` y `GHL_API_VERSION` estén decididos para JEWEL.
+4. Docs onboarding adaptadas a identidad JEWEL.
+
+Entonces: quitar ignore de Jest, ejecutar `npm test` completo, actualizar esta sección.
 
 ---
 

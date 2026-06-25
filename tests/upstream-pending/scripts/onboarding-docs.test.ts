@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const repoRoot = join(__dirname, '..', '..');
+const repoRoot = join(__dirname, '..', '..', '..');
 
 function read(path: string) {
   return readFileSync(join(repoRoot, path), 'utf8');

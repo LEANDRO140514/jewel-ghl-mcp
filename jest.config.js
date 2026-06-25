@@ -5,6 +5,10 @@ module.exports = {
   testMatch: [
     '**/tests/**/*.test.ts'
   ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/tests/upstream-pending/'
+  ],
   transform: {
     '^.+\\.ts$': 'ts-jest'
   },

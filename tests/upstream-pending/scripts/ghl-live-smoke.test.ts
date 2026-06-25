@@ -3,7 +3,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
 
-const repoRoot = join(__dirname, '..', '..');
+const repoRoot = join(__dirname, '..', '..', '..');
 const script = join(repoRoot, 'scripts', 'ghl-live-smoke.mjs');
 
 function listen(server: ReturnType<typeof createServer>): Promise<number> {
