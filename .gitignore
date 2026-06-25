@@ -13,6 +13,13 @@ yarn-error.log*
 
 # MCP Configuration with credentials
 cursor-mcp-config.json
+*.mcp.json
+
+# Keys and credential files
+*.pem
+*.key
+credentials.json
+secrets.json
 
 # Build output
 dist/
