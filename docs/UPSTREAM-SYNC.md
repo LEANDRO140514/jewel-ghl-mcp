@@ -294,6 +294,26 @@ Entonces: quitar ignore de Jest, ejecutar `npm test` completo, actualizar esta s
 
 ---
 
+## Fase 1H — Hardening de perfiles
+
+**Fecha:** 2026-06-24  
+**Rama:** `phase-1c/repo-operability`
+
+### Cambios en `src/tool-registry.ts`
+
+- `isSideEffectTool()` — prefijos de mutación de estado
+- `isJewelPureReadTool()` — lectura pura sin prepare
+- `jewel_readonly` — excluye prepare, side-effects, snapshot, bulk, write/destructive
+- `jewel_operator` — incluye curated `crm_prepare_*`; excluye side-effects y writes raw
+
+### Resultado esperado
+
+- readonly < operator en conteo de tools
+- 17 side-effects bloqueadas en ambos perfiles
+- Cursor puede usar `jewel_readonly` en sandbox
+
+---
+
 ## Checklist pre-merge (futuro)
 
 - [ ] `src/main.ts` conserva CORS Vercel y headers `x-ghl-*`

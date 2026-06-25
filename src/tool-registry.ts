@@ -184,8 +184,23 @@ const OPERATOR_EXCLUDE_SUBSTRINGS = [
   'delete', 'remove', 'bulk', 'snapshot', 'mass_send', 'mass-send', 'irreversible', 'purge', 'wipe',
 ] as const;
 
+const SIDE_EFFECT_PREFIXES = [
+  'approve_', 'reject_', 'start_', 'pause_', 'resume_', 'enable_', 'disable_',
+  'purchase_', 'release_', 'disconnect_', 'enroll_', 'reply_',
+] as const;
+
 function normalizeToolName(name: string): string {
   return name.toLowerCase().replace(/-/g, '_');
+}
+
+function isSideEffectTool(name: string): boolean {
+  const n = normalizeToolName(name);
+  return SIDE_EFFECT_PREFIXES.some((prefix) => n.startsWith(prefix));
+}
+
+function isPrepareActionTool(name: string): boolean {
+  const n = normalizeToolName(name);
+  return n.startsWith('crm_prepare_') || n.includes('_prepare_');
 }
 
 function isCuratedTool(tool: Tool): boolean {
@@ -211,11 +226,12 @@ function isDestructiveTool(name: string, meta?: unknown): boolean {
   return inferAnnotations(name, meta).destructiveHint === true;
 }
 
-function isReadOnlyTool(name: string, meta?: unknown): boolean {
-  if (isWriteLikeTool(name) || isDestructiveTool(name, meta)) return false;
+function isJewelPureReadTool(name: string, meta?: unknown): boolean {
+  if (isWriteLikeTool(name) || isDestructiveTool(name, meta) || isSideEffectTool(name)) return false;
 
   const n = normalizeToolName(name);
-  if (n.includes('snapshot')) return false;
+  if (n.includes('snapshot') || n.includes('bulk')) return false;
+  if (isPrepareActionTool(name)) return false;
   if (n.includes('workflow') && n.includes('trigger')) return false;
 
   const annotations = inferAnnotations(name, meta);
@@ -223,14 +239,13 @@ function isReadOnlyTool(name: string, meta?: unknown): boolean {
 
   if (n.endsWith('_workspace') || n === 'crm_list_workspaces') return true;
   if (n.includes('find_') || n.includes('_find_') || n.includes('health_check')) return true;
-  if (n.startsWith('crm_prepare_')) return true;
 
   return false;
 }
 
 function filterJewelReadOnly(tool: Tool): boolean {
   const meta = (tool as any)._meta;
-  return isReadOnlyTool(tool.name, meta);
+  return isJewelPureReadTool(tool.name, meta);
 }
 
 function isOperatorExcluded(name: string, meta?: unknown): boolean {
@@ -244,9 +259,12 @@ function isOperatorExcluded(name: string, meta?: unknown): boolean {
 
 function filterJewelOperator(tool: Tool): boolean {
   const meta = (tool as any)._meta;
-  if (isOperatorExcluded(tool.name, meta)) return false;
+  const name = tool.name;
+  if (isSideEffectTool(name)) return false;
+  if (isDestructiveTool(name, meta)) return false;
+  if (isOperatorExcluded(name, meta)) return false;
   if (isCuratedTool(tool)) return true;
-  return isReadOnlyTool(tool.name, meta);
+  return isJewelPureReadTool(name, meta);
 }
 
 // ─── Tool Registry ──────────────────────────────────────────

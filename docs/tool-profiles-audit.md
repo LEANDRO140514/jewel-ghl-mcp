@@ -293,3 +293,30 @@ Total: **81**
 | SOFT (subcadenas dominio) | 81 — mayoría lecturas legítimas |
 
 **Uso recomendado hoy:** sandbox GHL + `GHL_TOOL_PROFILE=jewel_readonly` solo tras excluir side-effects y decidir si `crm_prepare_*` pertenecen a Cursor o solo a operator/SaaS.
+
+---
+
+## Fase 1H — Endurecimiento de perfiles
+
+**Fecha:** 2026-06-24  
+**Cambios:** `isSideEffectTool()` con prefijos `approve_`, `reject_`, `start_`, `pause_`, `resume_`, `enable_`, `disable_`, `purchase_`, `release_`, `disconnect_`, `enroll_`, `reply_`.
+
+| Resultado | Detalle |
+| --- | --- |
+| 17 side-effects | Bloqueadas en **jewel_readonly** y **jewel_operator** |
+| `crm_prepare_*` | **Fuera** de readonly (0); **dentro** de operator (15) |
+| Separación perfiles | readonly 387 vs operator 402 (antes ambos 419) |
+
+### Conteos post-1H
+
+| Perfil | Tools |
+| --- | ---: |
+| full | 834 |
+| curated | 32 |
+| raw | 802 |
+| jewel_readonly | 387 |
+| jewel_operator | 402 |
+
+### Veredicto Cursor post-1H
+
+**Apto para sandbox** con `GHL_TOOL_PROFILE=jewel_readonly`: sin side-effects, sin prepare, sin patrones HARD/destructive. Revisar SOFT (`official_ad_manager_*`, etc.) si el laboratorio no requiere ads.

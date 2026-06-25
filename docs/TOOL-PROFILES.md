@@ -14,8 +14,8 @@ El registro filtra tools vía la variable de entorno `GHL_TOOL_PROFILE`, leída 
 | **full** | `GHL_TOOL_PROFILE=full` (default del código hoy) | Todos: ~834 endpoint tools + capa curated `agent-workspace` | Desarrollo, inventario completo, CI |
 | **curated** | `GHL_TOOL_PROFILE=curated` | Solo tools `agent-workspace` (flujos CRM de alto nivel) | Agentes conversacionales con cola de confirmación |
 | **raw** | `GHL_TOOL_PROFILE=raw` | Solo endpoint-level; sin capa curated | Integraciones que llaman API GHL tool por tool |
-| **jewel_readonly** | `GHL_TOOL_PROFILE=jewel_readonly` | Lectura, búsqueda, workspaces y preparación sin patrones write/destructive | Cursor laboratorio / auditoría |
-| **jewel_operator** | `GHL_TOOL_PROFILE=jewel_operator` | Curated no destructivo + raw solo lectura | SaaS producción con aprobación humana externa |
+| **jewel_readonly** | `GHL_TOOL_PROFILE=jewel_readonly` | Lectura pura: búsqueda, listados, workspaces CRM — **sin** `crm_prepare_*` ni side-effects | Cursor laboratorio / auditoría |
+| **jewel_operator** | `GHL_TOOL_PROFILE=jewel_operator` | Curated `crm_prepare_*` + raw solo lectura — sin side-effects ni writes raw | SaaS producción con aprobación humana externa |
 
 ### Cómo se clasifica cada tool
 
@@ -23,8 +23,8 @@ El registro filtra tools vía la variable de entorno `GHL_TOOL_PROFILE`, leída 
 | --- | --- |
 | Curated | `_meta.labels.category === 'agent-workspace'` o `source === 'curated-agent-workspace'` |
 | Raw | Todo lo demás (contacts, workflows, snapshots, official-spec, …) |
-| JEWEL readonly | `isReadOnlyTool()` — metadata `readOnly`, prefijos `get_`/`search_`/`list_`, workspaces `crm_*_workspace`, `crm_prepare_*` sin subcadenas write |
-| JEWEL operator | Curated no excluido + raw readonly; excluye `delete`, `remove`, `bulk`, `snapshot`, workflow triggers, writes raw |
+| JEWEL readonly | `isJewelPureReadTool()` — lectura pura; excluye write/destructive/side-effect/snapshot/bulk/`crm_prepare_*` |
+| JEWEL operator | Curated no excluido (incluye `crm_prepare_*`) + raw `isJewelPureReadTool`; bloquea `isSideEffectTool` y writes raw |
 
 > **Nota:** Los filtros JEWEL son **defensivos por nombre y anotaciones inferidas**. Deben evolucionar hacia metadata explícita (`readOnly`, `destructive`, `access`) en cada tool.
 
@@ -46,12 +46,12 @@ Tests: `tests/tool-registry.test.ts`.
 
 | Perfil | Estado | Intención |
 | --- | --- | --- |
-| **jewel_readonly** | **Implementado** | Observación sin mutación — excluye `create`, `update`, `delete`, `send`, `bulk`, etc. |
-| **jewel_operator** | **Implementado** | Curated + raw lectura; excluye destructivos, snapshots, workflow triggers, writes raw |
+| **jewel_readonly** | **Implementado (Fase 1H)** | Lectura pura — sin `crm_prepare_*`, sin side-effects (`approve_`, `start_`, `disable_`, …) |
+| **jewel_operator** | **Implementado (Fase 1H)** | Incluye `crm_prepare_*` curated; bloquea side-effects raw y writes destructivos |
 | **jewel_admin** | Pendiente | Setup agencia — operator + configuración |
 | **jewel_danger_zone** | Pendiente | Acciones irreversibles — desactivado por defecto |
 
-Implementación: `src/tool-registry.ts` → `filterJewelReadOnly()`, `filterJewelOperator()`, helpers `isReadOnlyTool`, `isWriteLikeTool`, `isDestructiveTool`.
+Implementación: `src/tool-registry.ts` → `filterJewelReadOnly()`, `filterJewelOperator()`, helpers `isJewelPureReadTool`, `isSideEffectTool`, `isWriteLikeTool`, `isDestructiveTool`.
 
 ---
 
