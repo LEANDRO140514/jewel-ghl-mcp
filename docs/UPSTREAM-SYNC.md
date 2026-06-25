@@ -10,8 +10,8 @@ Documento de auditoría Fase 1B. **No autoriza merge**; define divergencia y reg
 | --- | --- |
 | **Upstream** | [BusyBee3333/Go-High-Level-MCP-2026-Complete](https://github.com/BusyBee3333/Go-High-Level-MCP-2026-Complete.git) |
 | **Remote** | `upstream` → `https://github.com/BusyBee3333/Go-High-Level-MCP-2026-Complete.git` |
-| **Rama local** | `phase-1/upstream-audit` |
-| **Commit local** | `75c446a` (`docs: define JEWEL GHL MCP architecture and tool profiles`) |
+| **Rama local** | `phase-1c/repo-operability` |
+| **Commit local** | ver `git rev-parse --short HEAD` tras Fase 1C |
 | **Upstream HEAD** | `bfc2bbe` (`feat: add easy setup commands and CRM agent tools`) |
 | **Origin** | `LEANDRO140514/jewel-ghl-mcp` |
 
@@ -162,9 +162,67 @@ git merge upstream/main --allow-unrelated-histories
 
 | Fase | Objetivo |
 | --- | --- |
-| **1C** | Cherry-pick o patch selectivo de commits upstream (`bfc2bbe`, `d830668`, `e80faeb`, `29f0a12`); alinear `package-lock.json`; scripts npm faltantes |
-| **1D** | Implementar perfiles `jewel_readonly` / `jewel_operator` en registry |
+| **1C** | Operabilidad local: lockfile, scripts alias, port selectivo de assets no conflictivos |
+| **1D** | Implementar perfiles `jewel_readonly` / `jewel_operator` en registry; portar mejoras CLI upstream |
 | **Merge** | Solo tras checklist de archivos protegidos y smoke HTTP multi-tenant |
+
+---
+
+## Fase 1C — Port selectivo
+
+**Fecha:** 2026-06-24  
+**Rama:** `phase-1c/repo-operability`
+
+### Principio
+
+No hay merge-base con `upstream/main`. Upstream se trata como **fuente de parches**, no como base de merge. Quedan prohibidos `git merge`, `git rebase` y `--allow-unrelated-histories`.
+
+### Acciones ejecutadas
+
+| Acción | Detalle |
+| --- | --- |
+| Lockfile | `npm install --package-lock-only` — alineado a `jewel-ghl-mcp`, bins JEWEL, `typescript` en dependencies |
+| Scripts npm | Añadidos alias: `configure:cursor`, `doctor`, `auth-check`, `agent:check` (sin cambiar name/bin/deps/engines) |
+| Port upstream | Solo archivos **inexistentes** localmente, vía `git checkout upstream/main -- <path>` |
+
+### Archivos portados desde upstream
+
+| Archivo | Estado |
+| --- | --- |
+| `AGENT_SETUP.md` | Portado (nuevo) |
+| `QUICKSTART.md` | Portado (nuevo) |
+| `UPDATE_LOG.md` | Portado (nuevo) |
+| `Dockerfile` | Portado (nuevo) |
+| `docker-compose.yml` | Portado (nuevo) |
+| `scripts/validate-api-source-lock.mjs` | Portado (nuevo) |
+| `tests/scripts/ghl-api-coverage-generation.test.ts` | Portado (nuevo) |
+| `tests/scripts/ghl-live-smoke.test.ts` | Portado (nuevo) |
+| `tests/scripts/ghl-mcp-cli.test.ts` | Portado (nuevo) |
+| `tests/scripts/onboarding-docs.test.ts` | Portado (nuevo) |
+
+Ningún archivo portado existía localmente; no hubo sobrescrituras.
+
+### Archivos protegidos no tocados
+
+- `README.md`, `.env.example`
+- `src/main.ts`, `src/server.ts`, `src/http-server.ts`, `src/tool-registry.ts`
+- `src/tools/*`
+- `docs/tool-inventory.json`, `docs/API-DASHBOARD.md`, `docs/GHL-API-COVERAGE-REPORT.md`
+- `docs/ARCHITECTURE.md`, `docs/TOOL-PROFILES.md`, `.gitignore`
+- `package-lock.json` de upstream (no importado; regenerado desde `package.json` JEWEL)
+
+### Pendientes para Fase 1D
+
+| Ítem | Notas |
+| --- | --- |
+| Portar `scripts/ghl-mcp.mjs` | Upstream +548 líneas; requiere diff manual sin perder CLI JEWEL |
+| Portar `.github/workflows/onboarding.yml` | Nuevo en upstream; revisar vs CI JEWEL |
+| Portar `.dockerignore` | Existe en upstream; no portado en 1C |
+| Docs operativos upstream | `docs/SETUP.md`, `docs/SAFETY.md`, `docs/TROUBLESHOOTING.md`, … |
+| Cherry-pick commits | `29f0a12` (cap tool names), `e80faeb` (API refresh), `bfc2bbe` / `d830668` (setup) |
+| Perfiles `jewel_*` | Implementar en `tool-registry.ts` |
+| `npm run build` + `npm test` | Validar tests portados y doctor con `dist/` presente |
+| `docs/api-sources.lock.json` | Lock de fuentes API upstream |
 
 ---
 
