@@ -192,7 +192,7 @@ async function main() {
     });
   });
 
-  app.post('/tools/call', async (req, res) => {
+  app.post('/tools/call', requireSecret, async (req, res) => {
     const requireTenantHeaders = process.env.REQUIRE_TENANT_HEADERS === 'true';
     if (requireTenantHeaders) {
       res.status(403).json({ ok: false, error: 'Endpoint deshabilitado en modo multi-tenant' });

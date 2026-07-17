@@ -111,6 +111,20 @@ describe('requireSecret', () => {
     expect(next).toHaveBeenCalled();
     expect(res.status).not.toHaveBeenCalled();
   });
+
+  it('/tools/call should respond 401 without Bearer when MCP_SERVER_SECRET is set', () => {
+    process.env.MCP_SERVER_SECRET = 'test-secret';
+    const req = createMockRequest();
+    const res = createMockResponse();
+    const next = createMockNext();
+
+    // Simulate what happens in the route: middleware runs first
+    requireSecret(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ ok: false, error: 'Unauthorized' });
+    expect(next).not.toHaveBeenCalled();
+  });
 });
 
 describe('requireTenant', () => {
