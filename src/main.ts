@@ -16,6 +16,7 @@ import { EnhancedGHLClient } from './enhanced-ghl-client.js';
 import { ToolRegistry } from './tool-registry.js';
 import { GHLConfig } from './types/ghl-types.js';
 import { registerExecuteRoutes } from './execute-route.js';
+import { requireSecret, requireTenant } from './auth-middleware.js';
 
 dotenv.config();
 
@@ -94,7 +95,7 @@ async function main() {
     next();
   });
 
-  app.all('/mcp', async (req, res) => {
+  app.all('/mcp', requireSecret, requireTenant, async (req, res) => {
     try {
       const reqAccessToken = req.headers['x-ghl-access-token'] as string | undefined;
       const reqLocationId = req.headers['x-ghl-location-id'] as string | undefined;
@@ -133,8 +134,8 @@ async function main() {
     }
   };
 
-  app.get('/sse', handleSSE);
-  app.post('/sse', handleSSE);
+  app.get('/sse', requireSecret, handleSSE);
+  app.post('/sse', requireSecret, handleSSE);
 
   app.get('/', (_req, res) => {
     res.json({
@@ -181,9 +182,9 @@ async function main() {
     });
   });
 
-  registerExecuteRoutes(app, registry, config);
+  registerExecuteRoutes(app, registry, config, requireSecret, requireTenant);
 
-  app.get('/tool-inventory', (_req, res) => {
+  app.get('/tool-inventory', requireSecret, (_req, res) => {
     res.json({
       tools: registry.getToolInventory(),
       count: registry.getToolCount(),
@@ -192,22 +193,28 @@ async function main() {
   });
 
   app.post('/tools/call', async (req, res) => {
+    const requireTenantHeaders = process.env.REQUIRE_TENANT_HEADERS === 'true';
+    if (requireTenantHeaders) {
+      res.status(403).json({ ok: false, error: 'Endpoint deshabilitado en modo multi-tenant' });
+      return;
+    }
+
     const { name, arguments: args } = req.body;
     if (!name) {
-      res.status(400).json({ error: 'Missing tool name' });
+      res.status(400).json({ ok: false, error: 'Missing tool name' });
       return;
     }
 
     try {
       const result = await registry.callTool(name, args || {});
       if (result === undefined) {
-        res.status(404).json({ error: `Unknown tool: ${name}` });
+        res.status(404).json({ ok: false, error: `Unknown tool: ${name}` });
         return;
       }
-      res.json({ result });
+      res.json({ ok: true, result });
     } catch (err: any) {
       log('error', `REST tool error: ${name}`, { error: err.message });
-      res.status(500).json({ error: `Tool execution failed: ${err.message}` });
+      res.status(500).json({ ok: false, error: `Tool execution failed: ${err.message}` });
     }
   });
 
