@@ -4,7 +4,7 @@
  *   POST /execute
  */
 
-import type { Application } from 'express';
+import type { Application, Request, Response, NextFunction } from 'express';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolRegistry } from './tool-registry.js';
 import type { GHLConfig } from './types/ghl-types.js';
@@ -29,25 +29,32 @@ function toAnthropicTool(tool: Tool) {
 export function registerExecuteRoutes(
   app: Application,
   defaultRegistry: ToolRegistry,
-  baseConfig?: GHLConfig
+  baseConfig?: GHLConfig,
+  secretMiddleware?: (req: Request, res: Response, next: NextFunction) => void,
+  tenantMiddleware?: (req: Request, res: Response, next: NextFunction) => void
 ): void {
-  app.get('/tools', (_req, res) => {
+  // Default middleware that passes through
+  const noopMiddleware = (_req: Request, _res: Response, next: NextFunction) => next();
+  const secret = secretMiddleware || noopMiddleware;
+  const tenant = tenantMiddleware || noopMiddleware;
+
+  app.get('/tools', secret, (_req, res) => {
     try {
       const anthropicTools = defaultRegistry.getAllToolDefinitions().map(toAnthropicTool);
       res.json({ tools: anthropicTools, count: anthropicTools.length });
     } catch (err: any) {
       console.error('[execute-route] GET /tools error:', err.message);
-      res.status(500).json({ error: 'Failed to list tools' });
+      res.status(500).json({ ok: false, error: 'Failed to list tools' });
     }
   });
 
-  app.post('/execute', async (req, res) => {
+  app.post('/execute', secret, tenant, async (req, res) => {
     const body = req.body ?? {};
     const toolName: string | undefined = body.name;
     const toolArgs: Record<string, unknown> = body.arguments ?? {};
 
     if (!toolName || typeof toolName !== 'string') {
-      res.status(400).json({ error: 'Body must include a non-empty string "name"' });
+      res.status(400).json({ ok: false, error: 'Body must include a non-empty string "name"' });
       return;
     }
 
@@ -67,13 +74,13 @@ export function registerExecuteRoutes(
     try {
       const result = await registry.callTool(toolName, toolArgs);
       if (result === undefined) {
-        res.status(404).json({ error: `Unknown tool: ${toolName}` });
+        res.status(404).json({ ok: false, error: `Unknown tool: ${toolName}` });
         return;
       }
-      res.json({ result });
+      res.json({ ok: true, result });
     } catch (err: any) {
       console.error(`[execute-route] POST /execute tool=${toolName} error:`, err.message);
-      res.status(500).json({ error: `Tool execution failed: ${err.message}` });
+      res.status(500).json({ ok: false, error: `Tool execution failed: ${err.message}` });
     }
   });
 }
