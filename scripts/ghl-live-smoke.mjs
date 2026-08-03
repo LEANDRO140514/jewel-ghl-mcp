@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import 'dotenv/config';
 
 const baseUrl = process.env.GHL_BASE_URL || 'https://services.leadconnectorhq.com';
 const apiKey = process.env.GHL_API_KEY;
@@ -6,7 +7,10 @@ const locationId = process.env.GHL_LOCATION_ID;
 const version = process.env.GHL_API_VERSION || '2021-07-28';
 
 if (!apiKey || !locationId) {
-  console.log('Skipping live smoke: set GHL_API_KEY and GHL_LOCATION_ID to run read-only GHL checks.');
+  const missing = [];
+  if (!apiKey) missing.push('GHL_API_KEY');
+  if (!locationId) missing.push('GHL_LOCATION_ID');
+  console.log(`SKIP: falta ${missing.join(' y ')} — set GHL_API_KEY and GHL_LOCATION_ID to run read-only GHL checks.`);
   process.exit(0);
 }
 
