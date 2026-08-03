@@ -1,12 +1,15 @@
 # Auditoría de exposición por perfil — Fase 1G
 
-Generado: 2026-06-24  
-Rama: `phase-1c/repo-operability`  
+Generado: 2026-08-02 (conteos actualizados tras port upstream jun-11; ver sección final)  
+Rama: `port/upstream-jun11`  
 Método: `GHL_TOOL_PROFILE=<perfil> node scripts/ghl-mcp.mjs list-tools --json`
 
 ---
 
 ## Conteo por perfil
+
+> Nota: esta tabla reflejaba el estado original de Fase 1G (pre-1H). Los conteos vigentes están en
+> [Conteos post-1H](#conteos-post-1h) y, más recientes, en [Port upstream jun-11](#port-upstream-jun-11---2026-08-02).
 
 | Perfil | Tools |
 | --- | ---: |
@@ -320,3 +323,29 @@ Total: **81**
 ### Veredicto Cursor post-1H
 
 **Apto para sandbox** con `GHL_TOOL_PROFILE=jewel_readonly`: sin side-effects, sin prepare, sin patrones HARD/destructive. Revisar SOFT (`official_ad_manager_*`, etc.) si el laboratorio no requiere ads.
+
+---
+
+## Port upstream jun-11 — 2026-08-02
+
+**Fecha:** 2026-08-02  
+**Rama:** `port/upstream-jun11`  
+**Método:** `GHL_TOOL_PROFILE=<perfil> node scripts/ghl-mcp.mjs list-tools --json` (conteo del campo `count`), con `GHL_API_KEY=dummy` / `GHL_LOCATION_ID=dummy` en el entorno.
+
+**Cambios portados desde `BusyBee3333/Go-High-Level-MCP-2026-Complete` (congelado 2026-06-11):** 11 tools curated nuevas de agent-workspace (`crm_daily_briefing`, `crm_location_overview`, `crm_search_everything`, `crm_next_best_actions`, `crm_get_next_page`, `crm_prepare_contact_followup`, `crm_prepare_lead_reactivation`, `crm_prepare_missed_call_response`, `crm_prepare_pipeline_cleanup`, `crm_prepare_review_request_batch`, `crm_prepare_invoice_followup`), metadata explícita `access`/`stability`/`deprecated` en official-spec, y email campaigns v2. Port por checkout selectivo de archivos (sin historia git compartida con upstream): `src/tools/agent-workspace-tools.ts`, `src/tools/official-spec-tools.ts`, `src/tools/official-spec-endpoints.json`, `src/tools/email-tools.ts`, `src/tools/users-tools.ts`. Sin cambios en `src/tool-registry.ts`, `src/main.ts`, `src/auth-middleware.ts`, `src/http-server.ts`, `src/server.ts` (trabajo propio del fork).
+
+### Conteos post-port
+
+| Perfil | Tools (pre-port, post-1H) | Tools (post-port) | Δ |
+| --- | ---: | ---: | ---: |
+| full | 834 | 859 | +25 |
+| curated | 32 | 43 | +11 |
+| raw | 802 | 816 | +14 |
+| jewel_readonly | 387 | 395 | +8 |
+| jewel_operator | 402 | 417 | +15 |
+
+Todos los conteos coinciden con los esperados (859 / 43 / 395 / 417 verificados antes de commitear). Consistencia interna verificada: `curated (43) + raw (816) = full (859)`.
+
+### Alcance de esta actualización
+
+Esta sección solo actualiza los conteos totales por perfil. Los desgloses por categoría ("Top categorías por perfil"), el análisis de riesgo (metadata `access=write`, listas SOFT/HARD, `crm_prepare_*`) y el veredicto Cursor **no se recalcularon** — siguen reflejando el estado post-1H y no incorporan las 11 tools nuevas de `agent-workspace`. Si se necesita ese análisis actualizado, es un paso separado (recorrer `list-tools --json` por perfil y recomputar categorías/metadata), no incluido en este port.
