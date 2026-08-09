@@ -14,16 +14,8 @@ if (!apiKey || !locationId) {
   process.exit(0);
 }
 
-const checks = [
-  { name: 'location', path: `/locations/${encodeURIComponent(locationId)}` },
-  { name: 'contacts-search', path: `/contacts/search?locationId=${encodeURIComponent(locationId)}&pageLimit=1` },
-  { name: 'users-search', path: `/users/search?locationId=${encodeURIComponent(locationId)}&limit=1` },
-  { name: 'email-schedule', path: `/emails/schedule?locationId=${encodeURIComponent(locationId)}&limit=1&campaignsOnly=true` },
-];
-
-let failed = 0;
-for (const check of checks) {
-  const response = await fetch(`${baseUrl}${check.path}`, {
+async function get(path) {
+  const response = await fetch(`${baseUrl}${path}`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -31,9 +23,36 @@ for (const check of checks) {
       Accept: 'application/json',
     },
   });
-  const ok = response.status >= 200 && response.status < 500;
-  console.log(`${ok ? 'ok' : 'fail'} ${check.name}: HTTP ${response.status}`);
-  if (!ok) failed += 1;
+  let body;
+  try { body = await response.json(); } catch { body = undefined; }
+  return { status: response.status, body };
 }
+
+function report(name, status) {
+  const ok = status >= 200 && status < 500;
+  console.log(`${ok ? 'ok' : 'fail'} ${name}: HTTP ${status}`);
+  return ok;
+}
+
+let failed = 0;
+
+// Fetch location first: its response carries companyId, required by users-search below.
+const locationResult = await get(`/locations/${encodeURIComponent(locationId)}`);
+if (!report('location', locationResult.status)) failed += 1;
+const companyId = locationResult.body?.location?.companyId;
+
+const contactsResult = await get(`/contacts/?locationId=${encodeURIComponent(locationId)}&limit=1`);
+if (!report('contacts-search', contactsResult.status)) failed += 1;
+
+if (companyId) {
+  const usersResult = await get(`/users/search?companyId=${encodeURIComponent(companyId)}&locationId=${encodeURIComponent(locationId)}&limit=1`);
+  if (!report('users-search', usersResult.status)) failed += 1;
+} else {
+  console.log('fail users-search: could not read companyId from /locations response');
+  failed += 1;
+}
+
+const emailResult = await get(`/emails/schedule?locationId=${encodeURIComponent(locationId)}&limit=1&campaignsOnly=true`);
+if (!report('email-schedule', emailResult.status)) failed += 1;
 
 if (failed > 0) process.exit(1);

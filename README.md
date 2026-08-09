@@ -32,6 +32,24 @@ Dile en español normal y Claude lo hace completo:
 - Enfoque estratégico: automatizaciones + flujos completos de adquisición y retención
 - Daily auto-update con la API oficial de GHL
 
+## Multi-tenant Architecture
+
+JEWEL GHL soporta dos modos de credenciales, controlados por `REQUIRE_TENANT_HEADERS` en Railway:
+
+- **Single-tenant** (`REQUIRE_TENANT_HEADERS=false`, default): `GHL_API_KEY` y `GHL_LOCATION_ID` salen de las variables de entorno de Railway. Una sola credencial por proceso — útil para desarrollo y uso propio.
+- **Multi-tenant** (`REQUIRE_TENANT_HEADERS=true`): cada request a `/mcp` o `/execute` debe traer las credenciales del cliente por header (`x-ghl-access-token`, `x-ghl-location-id`). Un solo MCP corriendo en Railway sirve a múltiples subcuentas de GHL sin mezclar datos entre clientes.
+
+**Flujo por cliente en modo multi-tenant:**
+
+```
+Cliente A → su API Key + Location ID → MCP → GHL subcuenta A
+Cliente B → su API Key + Location ID → MCP → GHL subcuenta B
+```
+
+**Perfil de tools recomendado en producción SaaS:** `GHL_TOOL_PROFILE=jewel_operator` (417 tools) para el flujo completo, o `curated` (43 tools) para un MVP más acotado.
+
+**Nota sobre `GHL_API_VERSION`:** siempre `2023-02-21` — es el header `Version` oficial actual de HighLevel, no el año del proyecto. Nunca lo cambies a la fecha actual.
+
 ## Instalación rápida (para desarrollo)
 
 ```bash
